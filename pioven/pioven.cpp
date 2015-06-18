@@ -38,6 +38,10 @@ extern "C" DRIVER_INITIALIZE DriverEntry;
 _Use_decl_annotations_
 extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT /*DriverObject*/, PUNICODE_STRING /*RegistryPath*/)
 {
+	// always print the startup message - debug and release
+	DbgPrint("[pioven] pioven driver starting\n");
+	DbgPrint("[pioven] Driver version: 0.0.1.0\n");
+
 	return STATUS_SUCCESS;
 }
 

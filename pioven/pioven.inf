@@ -7,7 +7,7 @@ Signature="$WINDOWS NT$"
 Class=
 ClassGuid=
 Provider=
-DriverVer=
+DriverVer=17/06/2015,0.0.1.0
 CatalogFile=pioven.cat
 
 [DestinationDirs]

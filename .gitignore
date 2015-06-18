@@ -197,3 +197,4 @@ FakesAssemblies/
 pioven Package/Win7Debug/*
 pioven/Win7Debug/*
 Win7Debug/*
+pioven/sdv/*

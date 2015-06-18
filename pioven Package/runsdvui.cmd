@@ -1,0 +1,2 @@
+cd /d "C:\Users\raoak\Documents\Visual Studio 2013\Projects\pioven-driver\pioven Package" &msbuild "pioven Package.vcxproj" /t:sdvViewer /p:configuration="Win8.1 Release" /p:platform=x64
+exit %errorlevel% 

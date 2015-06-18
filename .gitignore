@@ -194,3 +194,6 @@ FakesAssemblies/
 
 # Visual Studio 6 workspace options file
 *.opt
+pioven Package/Win7Debug/*
+pioven/Win7Debug/*
+Win7Debug/*

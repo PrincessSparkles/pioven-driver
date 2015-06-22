@@ -4,9 +4,9 @@
 
 [Version]
 Signature="$WINDOWS NT$"
-Class=
-ClassGuid=
-Provider=
+Class=%ClassName%
+ClassGuid={10B9593F-8F68-4664-9EFD-E431D0434E69}
+Provider=%ProviderName%
 DriverVer=17/06/2015,0.0.1.0
 CatalogFile=pioven.cat
 
@@ -18,15 +18,36 @@ DefaultDestDir = 12
 1 = %DiskName%,,,""
 
 [SourceDisksFiles]
+pioven.sys = 1
 
 
 [Manufacturer]
-%ManufacturerName%=Standard,NT$ARCH$
+%ManufacturerName%=pioven,NT$ARCH$
 
-[Standard.NT$ARCH$]
+[pioven]
+%pioven.DeviceDesc%= pioven_Inst,SERENUM\USB\VID_067B&PID_2303
 
+[pioven.Services]
+AddService=pioven,,PiOven_Service_Inst
+
+[pioven_Inst]
+CopyFiles=pioven_CopyFiles
+
+[pioven_CopyFiles] ; section name referenced by > 1 CopyFiles
+pioven.sys
+
+[PiOven_Service_Inst]
+DisplayName    = %pioven.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\pioven.sys
+LoadOrderGroup = PNP Filter
 
 [Strings]
-ManufacturerName=""
-ClassName=""
+ManufacturerName="AmberMountain"
+ProviderName="Amber Mountain"
+ClassName="PiOven Devices"
 DiskName="pioven Source Disk"
+pioven.DeviceDesc="PiOven Device"
+pioven.SVCDESC="PiOven Driver"

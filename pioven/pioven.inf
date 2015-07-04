@@ -1,53 +1,65 @@
-;
 ; pioven.inf
-;
 
 [Version]
 Signature="$WINDOWS NT$"
-Class=%ClassName%
-ClassGuid={10B9593F-8F68-4664-9EFD-E431D0434E69}
-Provider=%ProviderName%
-DriverVer=17/06/2015,0.0.1.0
+Class=SYSTEM
+ClassGuid={4D36E97D-E325-11CE-BFC1-08002BE10318}
+Provider=%Amber%
+DriverVer=06/22/2011,0.0.1.0
 CatalogFile=pioven.cat
+
+; ================= Class section =====================
 
 [DestinationDirs]
 DefaultDestDir = 12
 
-
-[SourceDisksNames]
-1 = %DiskName%,,,""
-
-[SourceDisksFiles]
-pioven.sys = 1
-
+;*****************************************
+; pioven Device  Install Section
+;*****************************************
 
 [Manufacturer]
-%ManufacturerName%=pioven,NT$ARCH$
+%Amber%=Standard,ntamd64
 
-[pioven]
-%pioven.DeviceDesc%= pioven_Inst,SERENUM\USB\VID_067B&PID_2303
+[Standard.ntamd64]
+; DisplayName       	     Section DeviceId
+; -----------       	     ------- --------
+%piovenDevice.DeviceDesc% = pioven, PIOVEN\OVN0001
+[pioven.ntamd64]
+CopyFiles= pioven.ntamd64.Copy
 
-[pioven.Services]
-AddService=pioven,,PiOven_Service_Inst
-
-[pioven_Inst]
-CopyFiles=pioven_CopyFiles
-
-[pioven_CopyFiles] ; section name referenced by > 1 CopyFiles
+[pioven.ntamd64.Copy]
 pioven.sys
 
-[PiOven_Service_Inst]
+[pioven.ntamd64.HW]
+AddReg=pioven.ntamd64.Filter
+
+[pioven.ntamd64.Filter]
+;;;;;;HKR,,"UpperFilters",0x00010008,"pioven"
+
+;-------------- Service installation----------------------------------
+
+[pioven.ntamd64.Services]
+AddService = pioven, 0x00000002, pioven_Service_Inst
+
+; -------------- pioven Driver install sections----------------------
+
+[pioven_Service_Inst]
 DisplayName    = %pioven.SVCDESC%
 ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
 StartType      = 3               ; SERVICE_DEMAND_START
 ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
 ServiceBinary  = %12%\pioven.sys
-LoadOrderGroup = PNP Filter
+
+[SourceDisksNames]
+1 = %DiskId1%,,,""
+
+[SourceDisksFiles]
+pioven.sys  = 1,,
 
 [Strings]
-ManufacturerName="AmberMountain"
-ProviderName="Amber Mountain"
-ClassName="PiOven Devices"
-DiskName="pioven Source Disk"
-pioven.DeviceDesc="PiOven Device"
-pioven.SVCDESC="PiOven Driver"
+Amber = "Amber Mountain"
+StdMfg = "(Standard system devices)"
+ClassName = "System"
+piovenDevice.DeviceDesc = "PiOven Device"
+pioven.SVCDESC = "PiOven Driver"
+DiskId1 = "Disk 1"

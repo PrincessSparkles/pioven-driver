@@ -199,6 +199,8 @@
     <ClCompile Include="pioven.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="pioven-driver.h" />
+    <ClInclude Include="pioven.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

@@ -10,37 +10,151 @@
 
 #include <ntddk.h>
 
-/* ************************************************************************* */
-
-extern "C" DRIVER_INITIALIZE DriverEntry;
-
-/* ************************************************************************* */
-
-// read from the registry during DriverInit
-UNICODE_STRING g_ComPort;
+#include "pioven.h"
+#include "pioven-driver.h"
 
 /* ************************************************************************* */
+
+// {E6F826CF-8E71-4390-A2F0-76B6C6076FE1}
+static const GUID PIOVEN_GUID =
+{ 0xe6f826cf, 0x8e71, 0x4390, { 0xa2, 0xf0, 0x76, 0xb6, 0xc6, 0x7, 0x6f, 0xe1 } };
+
 /* ************************************************************************* */
 
-NTSTATUS InitUnicodeStringFromString(PUNICODE_STRING result, PWSTR value)
+NTSTATUS HandleIrpMjCreate(PDEVICE_OBJECT /*DeviceObject*/, PIRP Irp)
 {
-	NTSTATUS status;
-	// copy the value into a temp buffer
-	ULONG valueLen = (ULONG) wcslen(value);
-	ULONG bufferSize = (valueLen + 1) * sizeof(WCHAR);
-	
-	PWSTR buffer = (PWSTR)ExAllocatePool(PagedPool, bufferSize);
-	if (buffer == NULL)
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjCreate\n");
+
+	Irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	return STATUS_DEVICE_NOT_READY;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS HandleIrpMjClose(PDEVICE_OBJECT /*DeviceObject*/, PIRP Irp)
+{
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjClose\n");
+
+	Irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	return STATUS_DEVICE_NOT_READY;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS HandleIrpMjRead(PDEVICE_OBJECT /*DeviceObject*/, PIRP Irp)
+{
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjRead\n");
+
+	Irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	return STATUS_DEVICE_NOT_READY;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS HandleIrpMjWrite(PDEVICE_OBJECT /*DeviceObject*/, PIRP Irp)
+{
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjWrite\n");
+
+	Irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	return STATUS_DEVICE_NOT_READY;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS HandleIrpMjDeviceControl(PDEVICE_OBJECT /*DeviceObject*/, PIRP Irp)
+{
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjDeviceControl\n");
+
+	Irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	return STATUS_DEVICE_NOT_READY;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS HandleIrpMjPower(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+{
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjPower\n");
+
+	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
+
+	// for now, just pass the Irp downwards
+	IoSkipCurrentIrpStackLocation(Irp);
+	return PoCallDriver(devExt->AttachedDevice, Irp);
+}
+
+/* ************************************************************************* */
+
+NTSTATUS HandleIrpMjPnp(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+{
+	PIO_STACK_LOCATION stackLoc = IoGetCurrentIrpStackLocation(Irp);
+	UCHAR minor = stackLoc->MinorFunction;
+
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjPnp - 0x%02x\n", minor);
+
+	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
+
+	// for now, just pass the Irp downwards
+	IoSkipCurrentIrpStackLocation(Irp);
+	return IoCallDriver(devExt->AttachedDevice, Irp);
+}
+
+/* ************************************************************************* */
+
+NTSTATUS HandleIrpMjSystemControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+{
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjSystemControl\n");
+
+	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
+
+	// for now, just pass the Irp downwards
+	IoSkipCurrentIrpStackLocation(Irp);
+	return IoCallDriver(devExt->AttachedDevice, Irp);
+}
+
+/* ************************************************************************* */
+/* ************************************************************************* */
+
+NTSTATUS AddDevice(PDRIVER_OBJECT DriverObject, PDEVICE_OBJECT PhysicalDeviceObject)
+{
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] AddDevice\n");
+
+	DbgBreakPoint();
+
+	PDEVICE_OBJECT deviceObject;
+	NTSTATUS status = IoCreateDevice(DriverObject, sizeof(DeviceExtension), NULL, 
+		PIOVEN_DEVICE_TYPE, FILE_DEVICE_SECURE_OPEN, FALSE, &deviceObject);
+
+	if (NT_SUCCESS(status))
 	{
-		status = STATUS_INSUFFICIENT_RESOURCES;
-	}
-	else
-	{
-		// cop the string into the buffer, and init 'result'
-		RtlCopyMemory(buffer, value, bufferSize);
-		RtlInitUnicodeString(result, buffer);
-		
-		status = STATUS_SUCCESS;
+		DeviceExtension *devExt = (DeviceExtension *)deviceObject->DeviceExtension;
+
+		status = IoRegisterDeviceInterface(PhysicalDeviceObject, &PIOVEN_GUID, NULL, &devExt->SymbolicLinkName);
+		if (NT_SUCCESS(status))
+		{
+			devExt->DriverObject = DriverObject;
+			devExt->PhysicalDeviceObject = PhysicalDeviceObject;
+
+			deviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
+			deviceObject->Flags |= DO_BUFFERED_IO;
+
+			devExt->AttachedDevice = IoAttachDeviceToDeviceStack(deviceObject, PhysicalDeviceObject);
+
+			if (devExt->AttachedDevice != NULL)
+			{
+				return STATUS_SUCCESS;
+			}
+			else
+			{
+				status = STATUS_INVALID_DEVICE_STATE;
+			}
+		}
+
+		IoDeleteDevice(deviceObject);
 	}
 
 	return status;
@@ -48,88 +162,9 @@ NTSTATUS InitUnicodeStringFromString(PUNICODE_STRING result, PWSTR value)
 
 /* ************************************************************************* */
 
-/*
- * GetRegistryString
- *
- * Get a string from the registry
- *
- * Parameters: keyName      - the key containing the value that we're interested in
- *             valueName    - the name of the value we're reading
- *             resultString - pointer to where to store the result
- * Returns: STATUS_xxx
- */
-NTSTATUS GetRegistryString(PUNICODE_STRING keyName, PWSTR valueName, PUNICODE_STRING resultString)
+VOID DriverUnload(PDRIVER_OBJECT /*DriverObject*/)
 {
-	NTSTATUS status;
-
-	// open the key
-	OBJECT_ATTRIBUTES objAttr;
-	InitializeObjectAttributes(&objAttr, keyName, 0, NULL, NULL);
-
-	HANDLE hKey;
-	status = ZwOpenKey(&hKey, KEY_READ, &objAttr);
-	if (status != STATUS_SUCCESS)
-	{
-		DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Failed to open registry key %wZ - 0x%08x\n", 
-			keyName, status);
-		return status;
-	}
-	else
-	{
-		// read the value
-		UNICODE_STRING valueNameStr;
-		RtlInitUnicodeString(&valueNameStr, valueName);
-		ULONG valueLen = 0;
-		// get the length required
-		status = ZwQueryValueKey(hKey, &valueNameStr, KeyValuePartialInformation, NULL, 0, &valueLen);
-
-		if (valueLen == 0)
-		{
-			DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Failed to query value len %wZ - 0x%08x\n",
-				&valueNameStr, status);
-		}
-		else
-		{
-			// allocate some memory
-			PVOID pValue = ExAllocatePool(PagedPool, valueLen);
-			if (pValue == NULL)
-			{
-				status = STATUS_INSUFFICIENT_RESOURCES;
-				DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Failed to allocate %d bytes - 0x%08x\n",
-					valueLen, status);
-			}
-			else
-			{
-				status = ZwQueryValueKey(hKey, &valueNameStr, KeyValuePartialInformation, pValue, valueLen, &valueLen);
-				if (status != STATUS_SUCCESS)
-				{
-					DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Failed to read value %wZ - 0x%08x\n",
-						&valueNameStr, status);
-				}
-				else
-				{
-					PKEY_VALUE_PARTIAL_INFORMATION info = (PKEY_VALUE_PARTIAL_INFORMATION)pValue;
-					status = InitUnicodeStringFromString(resultString, (PWSTR)info->Data);
-
-					if (status != STATUS_SUCCESS)
-					{
-						DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Failed to read value %wZ - 0x%08x\n",
-							&valueNameStr, status);
-					}
-					else
-					{
-						status = STATUS_SUCCESS;
-					}
-				}
-
-				ExFreePool(pValue);
-			}
-		}
-
-		ZwClose(hKey);
-	}
-
-	return status;
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] DriverUnload\n");
 }
 
 /* ************************************************************************* */
@@ -153,21 +188,25 @@ NTSTATUS GetRegistryString(PUNICODE_STRING keyName, PWSTR valueName, PUNICODE_ST
  * is initialisation code
  */
 _Use_decl_annotations_
-extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT /*DriverObject*/, PUNICODE_STRING RegistryPath)
+extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING /*RegistryPath*/)
 {
 	// always print the startup message - debug and release
 	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] pioven driver starting\n");
-	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Driver version: 0.0.1.1\n");
-	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_INFO_LEVEL, "[pioven] Registry Path: %wZ\n", RegistryPath);
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Driver version: 0.1.0.1\n");
 
-	NTSTATUS status = GetRegistryString(RegistryPath, L"ComPort", &g_ComPort);
-	if (status != STATUS_SUCCESS)
-	{
-		// hard code to COM3
-		status = InitUnicodeStringFromString(&g_ComPort, L"COM3");
-	}
+	DriverObject->MajorFunction[IRP_MJ_CREATE] = HandleIrpMjCreate;
+	DriverObject->MajorFunction[IRP_MJ_CLOSE] = HandleIrpMjClose;
+	DriverObject->MajorFunction[IRP_MJ_READ] = HandleIrpMjRead;
+	DriverObject->MajorFunction[IRP_MJ_WRITE] = HandleIrpMjWrite;
+	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = HandleIrpMjDeviceControl;
+	DriverObject->MajorFunction[IRP_MJ_POWER] = HandleIrpMjPower;
+	DriverObject->MajorFunction[IRP_MJ_PNP] = HandleIrpMjPnp;
+	DriverObject->MajorFunction[IRP_MJ_SYSTEM_CONTROL] = HandleIrpMjSystemControl;
 
-	return status;
+	DriverObject->DriverUnload = DriverUnload;
+	DriverObject->DriverExtension->AddDevice = AddDevice;
+
+	return STATUS_SUCCESS;
 }
 
 /* ************************************************************************* */

@@ -37,5 +37,11 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="pioven.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pioven-driver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

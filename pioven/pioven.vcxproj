@@ -197,6 +197,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pioven.cpp" />
+    <ClCompile Include="Pnp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pioven-driver.h" />

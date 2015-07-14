@@ -89,22 +89,6 @@ NTSTATUS HandleIrpMjPower(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 /* ************************************************************************* */
 
-NTSTATUS HandleIrpMjPnp(PDEVICE_OBJECT DeviceObject, PIRP Irp)
-{
-	PIO_STACK_LOCATION stackLoc = IoGetCurrentIrpStackLocation(Irp);
-	UCHAR minor = stackLoc->MinorFunction;
-
-	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjPnp - 0x%02x\n", minor);
-
-	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
-
-	// for now, just pass the Irp downwards
-	IoSkipCurrentIrpStackLocation(Irp);
-	return IoCallDriver(devExt->AttachedDevice, Irp);
-}
-
-/* ************************************************************************* */
-
 NTSTATUS HandleIrpMjSystemControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
 	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjSystemControl\n");
@@ -123,8 +107,6 @@ NTSTATUS AddDevice(PDRIVER_OBJECT DriverObject, PDEVICE_OBJECT PhysicalDeviceObj
 {
 	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] AddDevice\n");
 
-	DbgBreakPoint();
-
 	PDEVICE_OBJECT deviceObject;
 	NTSTATUS status = IoCreateDevice(DriverObject, sizeof(DeviceExtension), NULL, 
 		PIOVEN_DEVICE_TYPE, FILE_DEVICE_SECURE_OPEN, FALSE, &deviceObject);
@@ -138,6 +120,8 @@ NTSTATUS AddDevice(PDRIVER_OBJECT DriverObject, PDEVICE_OBJECT PhysicalDeviceObj
 		{
 			devExt->DriverObject = DriverObject;
 			devExt->PhysicalDeviceObject = PhysicalDeviceObject;
+
+			KeInitializeEvent(&devExt->StartDeviceEvent, SynchronizationEvent, FALSE);
 
 			deviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 			deviceObject->Flags |= DO_BUFFERED_IO;
@@ -192,7 +176,9 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING /*R
 {
 	// always print the startup message - debug and release
 	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] pioven driver starting\n");
-	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Driver version: 0.1.0.2\n");
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Driver version: 0.2.0.2\n");
+
+	DbgBreakPoint();
 
 	DriverObject->MajorFunction[IRP_MJ_CREATE] = HandleIrpMjCreate;
 	DriverObject->MajorFunction[IRP_MJ_CLOSE] = HandleIrpMjClose;

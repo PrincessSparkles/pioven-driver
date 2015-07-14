@@ -27,6 +27,9 @@
     <ClCompile Include="pioven.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Pnp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="pioven.rc">

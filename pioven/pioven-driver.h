@@ -19,6 +19,8 @@ extern "C" DRIVER_INITIALIZE DriverEntry;
 DRIVER_ADD_DEVICE AddDevice;
 DRIVER_UNLOAD DriverUnload;
 
+DRIVER_DISPATCH HandleIrpMjPnp;
+
 /* ************************************************************************* */
 
 typedef struct _DeviceExtension 
@@ -35,7 +37,8 @@ typedef struct _DeviceExtension
 	// UNICODE_STRING returned by IoRegisterDeviceInterface
 	UNICODE_STRING	SymbolicLinkName;
 
-
+	// event used to sync the completion of IRP_MN_START_DEVICE
+	KEVENT	StartDeviceEvent;
 } DeviceExtension;
 
 /* ************************************************************************* */

@@ -78,7 +78,7 @@ NTSTATUS HandleIrpMjDeviceControl(PDEVICE_OBJECT /*DeviceObject*/, PIRP Irp)
 
 NTSTATUS HandleIrpMjPower(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
-	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjPower\n");
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_TRACE_LEVEL, "[pioven] HandleIrpMjPower\n");
 
 	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
 
@@ -91,7 +91,7 @@ NTSTATUS HandleIrpMjPower(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 NTSTATUS HandleIrpMjSystemControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
-	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjSystemControl\n");
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_TRACE_LEVEL, "[pioven] HandleIrpMjSystemControl\n");
 
 	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
 
@@ -176,7 +176,7 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING /*R
 {
 	// always print the startup message - debug and release
 	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] pioven driver starting\n");
-	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Driver version: 0.2.0.2\n");
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Driver version: 0.3.0.1\n");
 
 	DbgBreakPoint();
 

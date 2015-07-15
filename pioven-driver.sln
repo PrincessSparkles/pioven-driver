@@ -12,6 +12,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pioven Package", "pioven Pa
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "piovenapi", "piovenapi\piovenapi.vcxproj", "{0970E855-72D4-4D7F-991D-2210A9E6CA19}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "piovenui", "piovenui\piovenui.vcxproj", "{1CFA4DF3-E705-494F-B3A9-24B38907F566}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0970E855-72D4-4D7F-991D-2210A9E6CA19} = {0970E855-72D4-4D7F-991D-2210A9E6CA19}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -204,6 +209,46 @@ Global
 		{0970E855-72D4-4D7F-991D-2210A9E6CA19}.Win8.1 Release|Win32.ActiveCfg = Release|Win32
 		{0970E855-72D4-4D7F-991D-2210A9E6CA19}.Win8.1 Release|Win32.Build.0 = Release|Win32
 		{0970E855-72D4-4D7F-991D-2210A9E6CA19}.Win8.1 Release|x64.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Debug|Win32.Build.0 = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Debug|x64.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Release|Win32.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Release|Win32.Build.0 = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Release|x64.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win7 Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win7 Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win7 Debug|Win32.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win7 Debug|Win32.Build.0 = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win7 Debug|x64.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win7 Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win7 Release|Mixed Platforms.Build.0 = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win7 Release|Win32.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win7 Release|Win32.Build.0 = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win7 Release|x64.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8 Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8 Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8 Debug|Win32.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8 Debug|Win32.Build.0 = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8 Debug|x64.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8 Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8 Release|Mixed Platforms.Build.0 = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8 Release|Win32.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8 Release|Win32.Build.0 = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8 Release|x64.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8.1 Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8.1 Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8.1 Debug|Win32.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8.1 Debug|Win32.Build.0 = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8.1 Debug|x64.ActiveCfg = Debug|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8.1 Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8.1 Release|Mixed Platforms.Build.0 = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8.1 Release|Win32.ActiveCfg = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8.1 Release|Win32.Build.0 = Release|Win32
+		{1CFA4DF3-E705-494F-B3A9-24B38907F566}.Win8.1 Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

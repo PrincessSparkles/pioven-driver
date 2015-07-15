@@ -198,3 +198,5 @@ pioven Package/Win7Debug/*
 pioven/Win7Debug/*
 Win7Debug/*
 pioven/sdv/*
+pioven/Win8.1Debug/*
+Win8.1Debug/*

@@ -5,7 +5,7 @@ Signature="$WINDOWS NT$"
 Class=SYSTEM
 ClassGuid={4D36E97D-E325-11CE-BFC1-08002BE10318}
 Provider=%Amber%
-DriverVer=07/04/2011,0.0.1.2
+DriverVer=14/04/2011,0.0.1.2
 CatalogFile=pioven.cat
 
 ; ================= Class section =====================
@@ -32,9 +32,16 @@ pioven.sys
 
 [pioven.ntamd64.HW]
 AddReg=pioven.ntamd64.Filter
+AddReg=pioven.ntamd64.Registry
 
 [pioven.ntamd64.Filter]
 ;;;;;;HKR,,"UpperFilters",0x00010008,"pioven"
+
+[pioven.ntamd64.Registry]
+HKR,,DeviceCharacteristics,0x10001,0x0100                     ; Use same security checks on relative opens
+HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GA;;;AU)"  ; SYSTEM and AUTHENTICATED USERS
+HKR,,ComPort,,"COM3"
+
 
 ;-------------- Service installation----------------------------------
 
@@ -49,8 +56,6 @@ ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
 StartType      = 3               ; SERVICE_DEMAND_START
 ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
 ServiceBinary  = %12%\pioven.sys
-ComPort        = COM3			 ; for now, put the COM port here. Eventually, we can move it to a per-device config setting
-
 
 [SourceDisksNames]
 1 = %DiskId1%,,,""

@@ -35,8 +35,8 @@ NTSTATUS	OpenSerialPort(PCWSTR comPort, PHANDLE hComPort)
 
 	IO_STATUS_BLOCK ioStatusBlock;
 
-	NTSTATUS status = ZwCreateFile(hComPort, GENERIC_ALL, &objAttr, &ioStatusBlock, 
-		NULL, FILE_ATTRIBUTE_DEVICE, 0, FILE_OPEN, 0, NULL, 0);
+	NTSTATUS status = ZwCreateFile(hComPort, GENERIC_ALL | SYNCHRONIZE, &objAttr, &ioStatusBlock, 
+		NULL, FILE_ATTRIBUTE_DEVICE, 0, FILE_OPEN, FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
 
 	if (NT_SUCCESS(status) == FALSE)
 	{
@@ -62,6 +62,49 @@ NTSTATUS	CloseSerialPort(HANDLE hComPort)
 	ZwClose(hComPort);
 
 	return STATUS_SUCCESS;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS	SendSerialCommand(HANDLE hComPort, CHAR cmd, CHAR *response, ULONG responseSize)
+{
+	IO_STATUS_BLOCK ioStatusBlock;
+	LARGE_INTEGER offset;
+	offset.QuadPart = 0;
+
+	NTSTATUS status = ZwWriteFile(hComPort, NULL, NULL, NULL, &ioStatusBlock, 
+		&cmd, sizeof(CHAR), &offset, NULL);
+
+	if (NT_SUCCESS(status) == FALSE)
+	{
+		DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Error writing to com port - 0x%08x\n", status);
+	}
+	else
+	{
+		if (responseSize != 0 && response != NULL)
+		{
+			*response = 0;
+			ULONG totalReceived = 0;
+
+			while (response[totalReceived] != '\n')
+			{
+				status = ZwReadFile(hComPort, NULL, NULL, NULL, &ioStatusBlock, &response[totalReceived],
+					responseSize - totalReceived, &offset, NULL);
+
+				if (NT_SUCCESS(status) == FALSE)
+				{
+					DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Error reading from com port - 0x%08x\n", status);
+					break;
+				}
+				else
+				{
+					totalReceived += (ULONG) ioStatusBlock.Information;
+				}
+			}
+		}
+	}
+
+	return status;
 }
 
 /* ************************************************************************* */

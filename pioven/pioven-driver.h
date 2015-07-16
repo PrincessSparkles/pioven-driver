@@ -13,6 +13,8 @@
 
 #include <ntddk.h>
 
+#include "pioven.h"
+
 /* ************************************************************************* */
 
 extern "C" DRIVER_INITIALIZE DriverEntry;
@@ -41,7 +43,10 @@ typedef struct _DeviceExtension
 	KEVENT	StartDeviceEvent;
 
 	// handle to the underlying com port
-	HANDLE hComPort;
+	HANDLE	hComPort;
+
+	// the version of the python code, running on the raspberry pi
+	char	PythonVersion[PIOVEN_VERSION_SIZE];
 } DeviceExtension;
 
 /* ************************************************************************* */

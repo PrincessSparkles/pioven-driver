@@ -17,6 +17,7 @@
 
 NTSTATUS	OpenSerialPort(PCWSTR comPort, PHANDLE hComPort);
 NTSTATUS	CloseSerialPort(HANDLE hComPort);
+NTSTATUS	SendSerialCommand(HANDLE hComPort, CHAR cmd, CHAR *response, ULONG responseSize);
 
 /* ************************************************************************* */
 

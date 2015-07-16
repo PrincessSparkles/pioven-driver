@@ -23,4 +23,9 @@ static const GUID PIOVEN_GUID =
 
 /* ************************************************************************* */
 
+// max size of the string returned by python code in response to a version request
+#define PIOVEN_VERSION_SIZE		32
+
+/* ************************************************************************* */
+
 #endif  // __PIOVEN_H

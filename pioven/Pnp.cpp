@@ -53,6 +53,11 @@ NTSTATUS HandleIrpMnStartDevice(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		// open the serial interface
 		status = OpenSerialPort(L"\\DosDevices\\COM3", &devExt->hComPort);
 
+		if (NT_SUCCESS(status))
+		{
+			status = SendSerialCommand(devExt->hComPort, 'v', devExt->PythonVersion, sizeof(devExt->PythonVersion));
+		}
+
 		// start the device
 		status = IoSetDeviceInterfaceState(&devExt->SymbolicLinkName, TRUE);
 	}

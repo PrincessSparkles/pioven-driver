@@ -30,6 +30,9 @@
     <ClCompile Include="Pnp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="serial.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="pioven.rc">
@@ -44,6 +47,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pioven-driver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="serial.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

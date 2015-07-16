@@ -1,10 +1,10 @@
 /*
-* pioven.cpp
-*
-* This file contains the main code for the pi-oven driver
-*
-* 13th July 2015
-*/
+ * Pnp.cpp
+ *
+ * This file contains the Pnp code for the pi-oven driver
+ *
+ * 13th July 2015
+ */
 
 /* ************************************************************************* */
 
@@ -12,6 +12,7 @@
 
 #include "pioven.h"
 #include "pioven-driver.h"
+#include "serial.h"
 
 /* ************************************************************************* */
 
@@ -50,6 +51,7 @@ NTSTATUS HandleIrpMnStartDevice(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	if (NT_SUCCESS(status))
 	{
 		// open the serial interface
+		status = OpenSerialPort(L"\\DosDevices\\COM3", &devExt->hComPort);
 
 		// start the device
 		status = IoSetDeviceInterfaceState(&devExt->SymbolicLinkName, TRUE);
@@ -65,6 +67,8 @@ NTSTATUS HandleIrpMnRemoveDevice(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
 	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
 	NTSTATUS status = IoSetDeviceInterfaceState(&devExt->SymbolicLinkName, FALSE);
+
+	CloseSerialPort(devExt->hComPort);
 
 	// pass the Irp downwards
 	IoSkipCurrentIrpStackLocation(Irp);

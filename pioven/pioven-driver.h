@@ -39,6 +39,9 @@ typedef struct _DeviceExtension
 
 	// event used to sync the completion of IRP_MN_START_DEVICE
 	KEVENT	StartDeviceEvent;
+
+	// handle to the underlying com port
+	HANDLE hComPort;
 } DeviceExtension;
 
 /* ************************************************************************* */

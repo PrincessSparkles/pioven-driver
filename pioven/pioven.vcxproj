@@ -198,11 +198,13 @@
   <ItemGroup>
     <ClCompile Include="pioven.cpp" />
     <ClCompile Include="Pnp.cpp" />
+    <ClCompile Include="serial.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pioven-driver.h" />
     <ClInclude Include="pioven.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="serial.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="pioven.rc" />

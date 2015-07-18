@@ -51,11 +51,11 @@ NTSTATUS HandleIrpMnStartDevice(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	if (NT_SUCCESS(status))
 	{
 		// open the serial interface
-		status = OpenSerialPort(L"\\DosDevices\\COM3", &devExt->hComPort);
+		status = OpenSerialPort(L"\\DosDevices\\COM3", devExt);
 
 		if (NT_SUCCESS(status))
 		{
-			status = SendSerialCommand(devExt->hComPort, 'v', devExt->PythonVersion, sizeof(devExt->PythonVersion));
+			status = SendSerialCommand(devExt, 'v', devExt->PythonVersion, sizeof(devExt->PythonVersion));
 		}
 
 		// start the device
@@ -73,7 +73,7 @@ NTSTATUS HandleIrpMnRemoveDevice(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
 	NTSTATUS status = IoSetDeviceInterfaceState(&devExt->SymbolicLinkName, FALSE);
 
-	CloseSerialPort(devExt->hComPort);
+	CloseSerialPort(devExt);
 
 	// pass the Irp downwards
 	IoSkipCurrentIrpStackLocation(Irp);

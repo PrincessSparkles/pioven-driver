@@ -5,7 +5,7 @@ Signature="$WINDOWS NT$"
 Class=SYSTEM
 ClassGuid={4D36E97D-E325-11CE-BFC1-08002BE10318}
 Provider=%Amber%
-DriverVer=15/04/2011,0.3.1.4
+DriverVer=18/04/2011,0.4.2.6
 CatalogFile=pioven.cat
 
 ; ================= Class section =====================

@@ -9,46 +9,42 @@
 /* ************************************************************************* */
 
 #include <ntddk.h>
+#include <ntddser.h>
 
 #include "pioven.h"
 #include "pioven-driver.h"
+#include "serial.h"
 
 /* ************************************************************************* */
 
 /* ************************************************************************* */
 /* ************************************************************************* */
 
-NTSTATUS	ConfigureSerialPort(HANDLE /*hComPort*/)
+NTSTATUS	DoSerialPortIOCTL(DeviceExtension *devExt, ULONG IoControlCode, PVOID InBuffer, ULONG InBufferSize)
 {
-	return STATUS_SUCCESS;
-}
-
-/* ************************************************************************* */
-
-NTSTATUS	OpenSerialPort(PCWSTR comPort, PHANDLE hComPort)
-{
-	UNICODE_STRING comPortName;
-	RtlInitUnicodeString(&comPortName, comPort);
-
-	OBJECT_ATTRIBUTES objAttr;
-	InitializeObjectAttributes(&objAttr, &comPortName, OBJ_KERNEL_HANDLE, NULL, NULL);
-
 	IO_STATUS_BLOCK ioStatusBlock;
+	NTSTATUS status;
 
-	NTSTATUS status = ZwCreateFile(hComPort, GENERIC_ALL | SYNCHRONIZE, &objAttr, &ioStatusBlock, 
-		NULL, FILE_ATTRIBUTE_DEVICE, 0, FILE_OPEN, FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
+	PIRP Irp = IoBuildDeviceIoControlRequest(IoControlCode, devExt->ComPortDevice, InBuffer, InBufferSize, NULL, 0, 
+		FALSE, &devExt->ComPortEvent, &ioStatusBlock);
 
-	if (NT_SUCCESS(status) == FALSE)
+	if (Irp == NULL)
 	{
-		DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Failed to open %wZ - 0x%08x\n", comPortName, status);
+		DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] DoSerialPortIOCTL(0x%08x) failed to allocate IRP\n", IoControlCode);
+		status = STATUS_NO_MEMORY;
 	}
 	else
 	{
-		status = ConfigureSerialPort(*hComPort);
+		status = IoCallDriver(devExt->ComPortDevice, Irp);
+		if (status == STATUS_PENDING)
+		{
+			KeWaitForSingleObject(&devExt->ComPortEvent, Executive, KernelMode, FALSE, NULL);
+			status = ioStatusBlock.Status;
+		}
 
 		if (NT_SUCCESS(status) == FALSE)
 		{
-			ZwClose(*hComPort);
+			DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] DoSerialPortIOCTL(0x%08x) failed - 0x%08x\n", IoControlCode, status);
 		}
 	}
 
@@ -57,52 +53,153 @@ NTSTATUS	OpenSerialPort(PCWSTR comPort, PHANDLE hComPort)
 
 /* ************************************************************************* */
 
-NTSTATUS	CloseSerialPort(HANDLE hComPort)
+NTSTATUS	ConfigureSerialPort(DeviceExtension *devExt)
 {
-	ZwClose(hComPort);
+//#define CTL_CODE( DeviceType, Function, Method, Access ) (                 \
+//    ((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method) \
+//)
+//	ULONG foo = IOCTL_SERIAL_SET_BAUD_RATE;
+//	// 9600
+//
+//	foo = IOCTL_SERIAL_SET_LINE_CONTROL;
+//	// 00 00 08
+//
+//	foo = IOCTL_SERIAL_SET_CHARS;
+//	// 00 00 00 00 11 13
+//
+//	foo = IOCTL_SERIAL_SET_HANDFLOW;
+//	// 01 00 00 00  43 00 00 00  00 08 00 00  00 02 00 00
+//
+//	foo = IOCTL_SERIAL_SET_TIMEOUTS;
+//	// 01 00 .. 00
+
+	// these values were taken from running PUTTY and capturing
+	// NtDeviceIoControlFile with API Monitor
+	SERIAL_BAUD_RATE baudRate;
+	baudRate.BaudRate = 9600;
+	DoSerialPortIOCTL(devExt, IOCTL_SERIAL_SET_BAUD_RATE, &baudRate, sizeof(SERIAL_BAUD_RATE));
+
+	SERIAL_LINE_CONTROL	lineControl;
+	lineControl.Parity = 0;
+	lineControl.StopBits = 0;
+	lineControl.WordLength = 8;
+	DoSerialPortIOCTL(devExt, IOCTL_SERIAL_SET_LINE_CONTROL, &lineControl, sizeof(SERIAL_LINE_CONTROL));
+
+	SERIAL_CHARS	chars;
+	chars.EofChar = 0;
+	chars.ErrorChar = 0;
+	chars.BreakChar = 0;
+	chars.EventChar = 0;
+	chars.XonChar = 0x11;
+	chars.XoffChar = 0x13;
+	DoSerialPortIOCTL(devExt, IOCTL_SERIAL_SET_CHARS, &chars, sizeof(SERIAL_CHARS));
+
+	SERIAL_HANDFLOW handFlow;
+	handFlow.ControlHandShake = SERIAL_DTR_CONTROL;
+	handFlow.FlowReplace = SERIAL_AUTO_TRANSMIT | SERIAL_AUTO_RECEIVE | SERIAL_RTS_CONTROL;
+	handFlow.XonLimit = 0x800;
+	handFlow.XoffLimit = 0x200;
+	DoSerialPortIOCTL(devExt, IOCTL_SERIAL_SET_HANDFLOW, &handFlow, sizeof(SERIAL_HANDFLOW));
+
+	SERIAL_TIMEOUTS timeouts;
+	timeouts.ReadIntervalTimeout = 1;
+	timeouts.ReadTotalTimeoutMultiplier = 0;
+	timeouts.ReadTotalTimeoutConstant = 0;
+	timeouts.WriteTotalTimeoutMultiplier = 0;
+	timeouts.WriteTotalTimeoutConstant = 0;
+	DoSerialPortIOCTL(devExt, IOCTL_SERIAL_SET_TIMEOUTS, &timeouts, sizeof(SERIAL_TIMEOUTS));
 
 	return STATUS_SUCCESS;
 }
 
 /* ************************************************************************* */
 
-NTSTATUS	SendSerialCommand(HANDLE hComPort, CHAR cmd, CHAR *response, ULONG responseSize)
+NTSTATUS	OpenSerialPort(PCWSTR comPort, DeviceExtension *devExt)
 {
-	IO_STATUS_BLOCK ioStatusBlock;
-	LARGE_INTEGER offset;
-	offset.QuadPart = 0;
+	NTSTATUS	status;
+	UNICODE_STRING comPortName;
+	RtlInitUnicodeString(&comPortName, comPort);
 
-	NTSTATUS status = ZwWriteFile(hComPort, NULL, NULL, NULL, &ioStatusBlock, 
-		&cmd, sizeof(CHAR), &offset, NULL);
+	status = IoGetDeviceObjectPointer(&comPortName, GENERIC_ALL, &devExt->ComPortFile, &devExt->ComPortDevice);
 
 	if (NT_SUCCESS(status) == FALSE)
 	{
-		DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Error writing to com port - 0x%08x\n", status);
+		DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Failed to open serial port %wZ - 0x%08x\n", &comPortName, status);
+
+		devExt->ComPortDevice = NULL;
+		devExt->ComPortFile = NULL;
 	}
 	else
 	{
-		if (responseSize != 0 && response != NULL)
+		KeInitializeEvent(&devExt->ComPortEvent, SynchronizationEvent, FALSE);
+
+		status = ConfigureSerialPort(devExt);
+
+		if (NT_SUCCESS(status) == FALSE)
 		{
-			*response = 0;
-			ULONG totalReceived = 0;
+			CloseSerialPort(devExt);
 
-			while (response[totalReceived] != '\n')
-			{
-				status = ZwReadFile(hComPort, NULL, NULL, NULL, &ioStatusBlock, &response[totalReceived],
-					responseSize - totalReceived, &offset, NULL);
-
-				if (NT_SUCCESS(status) == FALSE)
-				{
-					DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Error reading from com port - 0x%08x\n", status);
-					break;
-				}
-				else
-				{
-					totalReceived += (ULONG) ioStatusBlock.Information;
-				}
-			}
+			devExt->ComPortDevice = NULL;
+			devExt->ComPortFile = NULL;
 		}
 	}
+
+	return status;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS	CloseSerialPort(DeviceExtension *devExt)
+{
+	// according to the docs for IoGetDeviceObjectPointer, we have to add a reference
+	// to the device object, before dereferencing the file object, because we're
+	// not in the driver unload routine
+	ObReferenceObject(devExt->ComPortDevice);
+
+	// now dereference the file to close it
+	ObDereferenceObject(devExt->ComPortFile);
+
+	return STATUS_SUCCESS;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS	WriteSerialCommand(DeviceExtension *devExt, CHAR cmd)
+{
+	NTSTATUS	status = STATUS_SUCCESS;
+	IO_STATUS_BLOCK	ioStatusBlock;
+	LARGE_INTEGER	offset;
+	offset.QuadPart = 0;
+
+	PIRP	Irp = IoBuildSynchronousFsdRequest(IRP_MJ_WRITE, devExt->ComPortDevice, &cmd, sizeof(CHAR), &offset, &devExt->ComPortEvent, &ioStatusBlock);
+	if (Irp == NULL)
+	{
+		DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] IoBuildSynchronousFsdRequest(IRP_MJ_WRITE, ...) failed\n");
+		status = STATUS_NO_MEMORY;
+	}
+	else
+	{
+		status = IoCallDriver(devExt->ComPortDevice, Irp);
+		if (status == STATUS_PENDING)
+		{
+			KeWaitForSingleObject(&devExt->ComPortEvent, Executive, KernelMode, FALSE, NULL);
+			status = ioStatusBlock.Status;
+		}
+
+		if (NT_SUCCESS(status) == FALSE)
+		{
+			DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Failed to send cmd '%c' - 0x%08x\n", cmd, status);
+		}
+	}
+
+	return status;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS	SendSerialCommand(DeviceExtension *devExt, CHAR cmd, CHAR * /*response*/, ULONG /*responseSize*/)
+{
+	NTSTATUS	status = WriteSerialCommand(devExt, cmd);
 
 	return status;
 }

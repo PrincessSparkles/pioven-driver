@@ -102,7 +102,7 @@ NTSTATUS	ConfigureSerialPort(DeviceExtension *devExt)
 	DoSerialPortIOCTL(devExt, IOCTL_SERIAL_SET_HANDFLOW, &handFlow, sizeof(SERIAL_HANDFLOW));
 
 	SERIAL_TIMEOUTS timeouts;
-	timeouts.ReadIntervalTimeout = 1;
+	timeouts.ReadIntervalTimeout = 100;
 	timeouts.ReadTotalTimeoutMultiplier = 0;
 	timeouts.ReadTotalTimeoutConstant = 0;
 	timeouts.WriteTotalTimeoutMultiplier = 0;
@@ -151,13 +151,16 @@ NTSTATUS	OpenSerialPort(PCWSTR comPort, DeviceExtension *devExt)
 
 NTSTATUS	CloseSerialPort(DeviceExtension *devExt)
 {
-	// according to the docs for IoGetDeviceObjectPointer, we have to add a reference
-	// to the device object, before dereferencing the file object, because we're
-	// not in the driver unload routine
-	ObReferenceObject(devExt->ComPortDevice);
+	if (devExt->ComPortDevice != NULL)
+	{
+		// according to the docs for IoGetDeviceObjectPointer, we have to add a reference
+		// to the device object, before dereferencing the file object, because we're
+		// not in the driver unload routine
+		ObReferenceObject(devExt->ComPortDevice);
 
-	// now dereference the file to close it
-	ObDereferenceObject(devExt->ComPortFile);
+		// now dereference the file to close it
+		ObDereferenceObject(devExt->ComPortFile);
+	}
 
 	return STATUS_SUCCESS;
 }
@@ -197,9 +200,78 @@ NTSTATUS	WriteSerialCommand(DeviceExtension *devExt, CHAR cmd)
 
 /* ************************************************************************* */
 
-NTSTATUS	SendSerialCommand(DeviceExtension *devExt, CHAR cmd, CHAR * /*response*/, ULONG /*responseSize*/)
+ULONG	ReadSerialResponse(DeviceExtension *devExt, CHAR *response, ULONG responseSize)
+{
+	NTSTATUS	status = STATUS_SUCCESS;
+	IO_STATUS_BLOCK	ioStatusBlock;
+	LARGE_INTEGER	offset;
+	offset.QuadPart = 0;
+	ULONG result;
+
+	PIRP	Irp = IoBuildSynchronousFsdRequest(IRP_MJ_READ, devExt->ComPortDevice, response, responseSize, &offset, &devExt->ComPortEvent, &ioStatusBlock);
+	if (Irp == NULL)
+	{
+		DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] IoBuildSynchronousFsdRequest(IRP_MJ_READ, ...) failed\n");
+		result = 0;
+	}
+	else
+	{
+		status = IoCallDriver(devExt->ComPortDevice, Irp);
+		if (status == STATUS_PENDING)
+		{
+			LARGE_INTEGER timeout;
+			// 1000 miliseconds, * 10 to get into 100-nanosecond intervals
+			// negative => relative to now
+			timeout.QuadPart = -(1000 * 10);
+
+			KeWaitForSingleObject(&devExt->ComPortEvent, Executive, KernelMode, FALSE, &timeout);
+			status = ioStatusBlock.Status;
+		}
+
+		if (NT_SUCCESS(status) == FALSE)
+		{
+			DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Failed to read response - 0x%08x\n", status);
+			result = 0;
+		}
+		else
+		{
+			result = (ULONG) ioStatusBlock.Information;
+		}
+	}
+
+	return result;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS	SendSerialCommand(DeviceExtension *devExt, CHAR cmd, CHAR *response, ULONG responseSize)
 {
 	NTSTATUS	status = WriteSerialCommand(devExt, cmd);
+
+	while (responseSize > 0)
+	{
+		ULONG amt = ReadSerialResponse(devExt, response, responseSize);
+
+		if (amt == 0)
+		{
+			status = STATUS_NO_DATA_DETECTED;
+			break;
+		}
+		else if (response[amt - 1] == '\n')
+		{
+			// all responses from the pioven device are terminated
+			// with a \n
+			// NULL-terminate it instead
+			response[amt - 1] = '\0';
+			break;
+		}
+		else
+		{
+			// only managed a partial read
+			response += amt;
+			responseSize -= amt;
+		}
+	}
 
 	return status;
 }

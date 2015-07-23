@@ -47,6 +47,10 @@ typedef struct _DeviceExtension
 	PFILE_OBJECT	ComPortFile;
 	KEVENT			ComPortEvent;
 
+	KEVENT			ComPortReadEvent;	// set when the comport has read something
+	HANDLE			ComPortReadThread;	// thread that is reading the data from the comport
+
+
 	// the version of the python code, running on the raspberry pi
 	char	PythonVersion[PIOVEN_VERSION_SIZE];
 } DeviceExtension;

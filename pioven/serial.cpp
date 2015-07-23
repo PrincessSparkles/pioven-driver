@@ -20,6 +20,72 @@
 /* ************************************************************************* */
 /* ************************************************************************* */
 
+NTSTATUS	ComPortRead(DeviceExtension *devExt, CHAR *c)
+{
+	IO_STATUS_BLOCK ioStatusBlock;
+	LARGE_INTEGER	offset;
+	offset.QuadPart = 0;
+	NTSTATUS	status;
+
+	KeResetEvent(&devExt->ComPortReadEvent);
+
+	PIRP	Irp = IoBuildSynchronousFsdRequest(IRP_MJ_READ, devExt->ComPortDevice, c, sizeof(CHAR), &offset, &devExt->ComPortReadEvent, &ioStatusBlock);
+	if (Irp == NULL)
+	{
+		DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] IoBuildSynchronousFsdRequest(IRP_MJ_READ, ...) failed\n");
+		status = STATUS_NO_MEMORY;
+	}
+	else
+	{
+		status = IoCallDriver(devExt->ComPortDevice, Irp);
+		if (status == STATUS_PENDING)
+		{
+//			LARGE_INTEGER timeout;
+//			timeout.QuadPart = 0;
+
+			if (KeWaitForSingleObject(&devExt->ComPortReadEvent, Executive, KernelMode, FALSE, NULL) == STATUS_SUCCESS)
+			{
+				status = ioStatusBlock.Status;
+			}
+		}
+
+		if (NT_SUCCESS(status) == FALSE)
+		{
+			DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Failed to read response - 0x%08x\n", status);
+		}
+	}
+
+	return status;
+}
+
+/* ************************************************************************* */
+
+VOID ComPortThread(PVOID context)
+{
+	DeviceExtension *devExt = (DeviceExtension *)context;
+	NTSTATUS status;
+
+	CHAR	c;
+
+	for (;;)
+	{
+		status = ComPortRead(devExt, &c);
+
+		if (NT_SUCCESS(status) == FALSE)
+		{
+			break;
+		}
+		else
+		{
+			DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] read 0x%02x from ComPort\n", c);
+		}
+	}
+
+	PsTerminateSystemThread(status);
+}
+
+/* ************************************************************************* */
+
 NTSTATUS	DoSerialPortIOCTL(DeviceExtension *devExt, ULONG IoControlCode, PVOID InBuffer, ULONG InBufferSize)
 {
 	IO_STATUS_BLOCK ioStatusBlock;
@@ -81,6 +147,9 @@ NTSTATUS	ConfigureSerialPort(DeviceExtension *devExt)
 	baudRate.BaudRate = 9600;
 	DoSerialPortIOCTL(devExt, IOCTL_SERIAL_SET_BAUD_RATE, &baudRate, sizeof(SERIAL_BAUD_RATE));
 
+	DoSerialPortIOCTL(devExt, IOCTL_SERIAL_SET_RTS, NULL, 0);
+	DoSerialPortIOCTL(devExt, IOCTL_SERIAL_SET_DTR, NULL, 0);
+
 	SERIAL_LINE_CONTROL	lineControl;
 	lineControl.Parity = 0;
 	lineControl.StopBits = 0;
@@ -104,7 +173,7 @@ NTSTATUS	ConfigureSerialPort(DeviceExtension *devExt)
 	DoSerialPortIOCTL(devExt, IOCTL_SERIAL_SET_HANDFLOW, &handFlow, sizeof(SERIAL_HANDFLOW));
 
 	SERIAL_TIMEOUTS timeouts;
-	timeouts.ReadIntervalTimeout = 100;
+	timeouts.ReadIntervalTimeout = 1;
 	timeouts.ReadTotalTimeoutMultiplier = 0;
 	timeouts.ReadTotalTimeoutConstant = 0;
 	timeouts.WriteTotalTimeoutMultiplier = 0;
@@ -144,6 +213,25 @@ NTSTATUS	OpenSerialPort(PCWSTR comPort, DeviceExtension *devExt)
 			devExt->ComPortDevice = NULL;
 			devExt->ComPortFile = NULL;
 		}
+		else
+		{
+			KeInitializeEvent(&devExt->ComPortReadEvent, NotificationEvent, FALSE);
+
+			OBJECT_ATTRIBUTES objAttr;
+
+			InitializeObjectAttributes(&objAttr, NULL, OBJ_KERNEL_HANDLE, NULL, NULL);
+			devExt->ComPortReadThread = NULL;
+
+			status = PsCreateSystemThread(&devExt->ComPortReadThread, GENERIC_ALL, &objAttr, NULL, NULL, ComPortThread, devExt);
+
+			if (NT_SUCCESS(status) == FALSE)
+			{
+				CloseSerialPort(devExt);
+
+				devExt->ComPortDevice = NULL;
+				devExt->ComPortFile = NULL;
+			}
+		}
 	}
 
 	return status;
@@ -162,6 +250,12 @@ NTSTATUS	CloseSerialPort(DeviceExtension *devExt)
 
 		// now dereference the file to close it
 		ObDereferenceObject(devExt->ComPortFile);
+
+		if (devExt->ComPortReadThread != NULL)
+		{
+			ZwClose(devExt->ComPortReadThread);
+			devExt->ComPortReadThread = NULL;
+		}
 	}
 
 	return STATUS_SUCCESS;
@@ -250,10 +344,10 @@ ULONG	ReadSerialResponse(DeviceExtension *devExt, CHAR *response, ULONG response
 
 /* ************************************************************************* */
 
-NTSTATUS	SendSerialCommand(DeviceExtension *devExt, CHAR cmd, CHAR *response, ULONG responseSize)
+NTSTATUS	SendSerialCommand(DeviceExtension *devExt, CHAR cmd, CHAR * /*response*/, ULONG /*responseSize*/)
 {
 	NTSTATUS	status = WriteSerialCommand(devExt, cmd);
-
+	/*
 	while (responseSize > 0)
 	{
 		ULONG amt = ReadSerialResponse(devExt, response, responseSize);
@@ -278,6 +372,7 @@ NTSTATUS	SendSerialCommand(DeviceExtension *devExt, CHAR cmd, CHAR *response, UL
 			responseSize -= amt;
 		}
 	}
+	*/
 
 	return status;
 }

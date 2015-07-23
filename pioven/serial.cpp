@@ -25,7 +25,9 @@ NTSTATUS	DoSerialPortIOCTL(DeviceExtension *devExt, ULONG IoControlCode, PVOID I
 	IO_STATUS_BLOCK ioStatusBlock;
 	NTSTATUS status;
 
-	PIRP Irp = IoBuildDeviceIoControlRequest(IoControlCode, devExt->ComPortDevice, InBuffer, InBufferSize, NULL, 0, 
+	KeResetEvent(&devExt->ComPortEvent);
+
+	PIRP Irp = IoBuildDeviceIoControlRequest(IoControlCode, devExt->ComPortDevice, InBuffer, InBufferSize, NULL, 0,
 		FALSE, &devExt->ComPortEvent, &ioStatusBlock);
 
 	if (Irp == NULL)
@@ -131,7 +133,7 @@ NTSTATUS	OpenSerialPort(PCWSTR comPort, DeviceExtension *devExt)
 	}
 	else
 	{
-		KeInitializeEvent(&devExt->ComPortEvent, SynchronizationEvent, FALSE);
+		KeInitializeEvent(&devExt->ComPortEvent, NotificationEvent, FALSE);
 
 		status = ConfigureSerialPort(devExt);
 
@@ -174,6 +176,8 @@ NTSTATUS	WriteSerialCommand(DeviceExtension *devExt, CHAR cmd)
 	LARGE_INTEGER	offset;
 	offset.QuadPart = 0;
 
+	KeResetEvent(&devExt->ComPortEvent);
+
 	PIRP	Irp = IoBuildSynchronousFsdRequest(IRP_MJ_WRITE, devExt->ComPortDevice, &cmd, sizeof(CHAR), &offset, &devExt->ComPortEvent, &ioStatusBlock);
 	if (Irp == NULL)
 	{
@@ -207,6 +211,8 @@ ULONG	ReadSerialResponse(DeviceExtension *devExt, CHAR *response, ULONG response
 	LARGE_INTEGER	offset;
 	offset.QuadPart = 0;
 	ULONG result;
+
+	KeResetEvent(&devExt->ComPortEvent);
 
 	PIRP	Irp = IoBuildSynchronousFsdRequest(IRP_MJ_READ, devExt->ComPortDevice, response, responseSize, &offset, &devExt->ComPortEvent, &ioStatusBlock);
 	if (Irp == NULL)

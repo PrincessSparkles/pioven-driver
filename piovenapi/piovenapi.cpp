@@ -63,4 +63,51 @@ PIOVENAPI_API void CloseOven(HANDLE hOven)
 
 /* ************************************************************************* */
 /* ************************************************************************* */
+
+PIOVENAPI_API BOOL GetOvenVersion(HANDLE hOven, char *buf, DWORD bufSize)
+{
+	if (bufSize < PIOVEN_VERSION_SIZE)
+	{
+		return FALSE;
+	}
+
+	DWORD numBytes = 0;
+	return DeviceIoControl(hOven, IOCTL_PIOVEN_GET_VERSION, NULL, 0, buf, bufSize, &numBytes, NULL);
+}
+
+/* ************************************************************************* */
+
+PIOVENAPI_API DWORD GetOvenTemperature(HANDLE hOven)
+{
+	DWORD temp;
+	DWORD numBytes = 0;
+
+	if (DeviceIoControl(hOven, IOCTL_PIOVEN_GET_TEMPERATURE, NULL, 0, &temp, sizeof(DWORD), &numBytes, NULL) == FALSE)
+	{
+		return 0xffffffff;
+	}
+	else
+	{
+		return temp;
+	}
+}
+
+/* ************************************************************************* */
+
+PIOVENAPI_API BOOL SetHeaterOn(HANDLE hOven)
+{
+	DWORD numBytes = 0;
+	return DeviceIoControl(hOven, IOCTL_PIOVEN_HEATER_ON, NULL, 0, NULL, 0, &numBytes, NULL);
+}
+
+/* ************************************************************************* */
+
+PIOVENAPI_API BOOL SetHeaterOff(HANDLE hOven)
+{
+	DWORD numBytes = 0;
+	return DeviceIoControl(hOven, IOCTL_PIOVEN_HEATER_OFF, NULL, 0, NULL, 0, &numBytes, NULL);
+}
+
+/* ************************************************************************* */
+/* ************************************************************************* */
 /* ************************************************************************* */

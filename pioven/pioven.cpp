@@ -12,6 +12,7 @@
 
 #include "pioven.h"
 #include "pioven-driver.h"
+#include "serial.h"
 
 /* ************************************************************************* */
 
@@ -61,14 +62,130 @@ NTSTATUS HandleIrpMjWrite(PDEVICE_OBJECT /*DeviceObject*/, PIRP Irp)
 }
 
 /* ************************************************************************* */
+/* ************************************************************************* */
 
-NTSTATUS HandleIrpMjDeviceControl(PDEVICE_OBJECT /*DeviceObject*/, PIRP Irp)
+NTSTATUS HandleIOCTLGetVersion(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
-	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjDeviceControl\n");
+	PIO_STACK_LOCATION pStackLoc = IoGetCurrentIrpStackLocation(Irp);
 
-	Irp->IoStatus.Status = STATUS_DEVICE_NOT_READY;
+	if (pStackLoc->Parameters.DeviceIoControl.OutputBufferLength < PIOVEN_VERSION_SIZE)
+	{
+		return STATUS_BUFFER_TOO_SMALL;
+	}
+
+	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
+	RtlCopyMemory(Irp->AssociatedIrp.SystemBuffer, devExt->PythonVersion, PIOVEN_VERSION_SIZE);
+
+	Irp->IoStatus.Information = PIOVEN_VERSION_SIZE;
+
+	return STATUS_SUCCESS;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS HandleIOCTLGetTemperature(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+{
+	PIO_STACK_LOCATION pStackLoc = IoGetCurrentIrpStackLocation(Irp);
+
+	if (pStackLoc->Parameters.DeviceIoControl.OutputBufferLength < sizeof(ULONG))
+	{
+		return STATUS_BUFFER_TOO_SMALL;
+	}
+
+	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
+	char	result[4];
+	SendSerialCommand(devExt->hComPort, '?', result, sizeof(result));
+	
+	ULONG	temp = 0;
+	ULONG	i;
+
+	// 3 hex values
+	for (i = 0; i < 3; i++)
+	{
+		temp = temp * 16;
+		
+		char hex = result[i];
+		if (hex >= '0' && hex <= '9')
+		{
+			temp += (hex - '0');
+		}
+		else if (hex >= 'A' && hex <= 'F')
+		{
+			temp += (hex - 'A') + 0x0A;
+		}
+		else if (hex >= 'a' && hex <= 'f')
+		{
+			temp += (hex - 'a') + 0x0a;
+		}
+	}
+
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIOCTLGetTemperature %s 0x%03x\n", result, temp);
+
+	*(ULONG *)Irp->AssociatedIrp.SystemBuffer = temp;
+	Irp->IoStatus.Information = sizeof(ULONG);
+
+	return STATUS_SUCCESS;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS HandleIOCTLHeaterOn(PDEVICE_OBJECT DeviceObject, PIRP /*Irp*/)
+{
+	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
+
+	SendSerialCommand(devExt->hComPort, 'h', NULL, 0);
+
+	return STATUS_SUCCESS;
+}
+
+/* ************************************************************************* */
+
+NTSTATUS HandleIOCTLHeaterOff(PDEVICE_OBJECT DeviceObject, PIRP /*Irp*/)
+{
+	DeviceExtension *devExt = (DeviceExtension *)DeviceObject->DeviceExtension;
+
+	SendSerialCommand(devExt->hComPort, 'c', NULL, 0);
+
+	return STATUS_SUCCESS;
+}
+
+/* ************************************************************************* */
+/* ************************************************************************* */
+
+NTSTATUS HandleIrpMjDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+{
+	PIO_STACK_LOCATION pStackLoc = IoGetCurrentIrpStackLocation(Irp);
+	ULONG	ioctl = pStackLoc->Parameters.DeviceIoControl.IoControlCode;
+	NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] HandleIrpMjDeviceControl 0x%08x\n", ioctl);
+
+	switch (ioctl)
+	{
+		case IOCTL_PIOVEN_GET_VERSION:
+			status = HandleIOCTLGetVersion(DeviceObject, Irp);
+			break;
+
+		case IOCTL_PIOVEN_GET_TEMPERATURE:
+			status = HandleIOCTLGetTemperature(DeviceObject, Irp);
+			break;
+
+		case IOCTL_PIOVEN_HEATER_ON:
+			status = HandleIOCTLHeaterOn(DeviceObject, Irp);
+			break;
+
+		case IOCTL_PIOVEN_HEATER_OFF:
+			status = HandleIOCTLHeaterOff(DeviceObject, Irp);
+			break;
+
+		default:
+			status = STATUS_NOT_IMPLEMENTED;
+			break;
+	}
+
+	Irp->IoStatus.Status = status;
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
-	return STATUS_DEVICE_NOT_READY;
+	return status;
 }
 
 /* ************************************************************************* */
@@ -106,7 +223,7 @@ NTSTATUS AddDevice(PDRIVER_OBJECT DriverObject, PDEVICE_OBJECT PhysicalDeviceObj
 
 	PDEVICE_OBJECT deviceObject;
 	NTSTATUS status = IoCreateDevice(DriverObject, sizeof(DeviceExtension), NULL, 
-		PIOVEN_DEVICE_TYPE, FILE_DEVICE_SECURE_OPEN, FALSE, &deviceObject);
+		FILE_DEVICE_PIOVEN, FILE_DEVICE_SECURE_OPEN, FALSE, &deviceObject);
 
 	if (NT_SUCCESS(status))
 	{
@@ -173,7 +290,7 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING /*R
 {
 	// always print the startup message - debug and release
 	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] pioven driver starting\n");
-	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Driver version: 0.4.1.6\n");
+	DbgPrintEx(DPFLTR_IHVVIDEO_ID, DPFLTR_ERROR_LEVEL, "[pioven] Driver version: 0.5.1.17\n");
 
 	DbgBreakPoint();
 

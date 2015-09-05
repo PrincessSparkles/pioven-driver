@@ -19,12 +19,26 @@ static const GUID PIOVEN_GUID =
 /* ************************************************************************* */
 
 // not a system defined type of device, so use a number between 0x8000 and 0xffff
-#define PIOVEN_DEVICE_TYPE		0xd7f3
+#define FILE_DEVICE_PIOVEN		0xd7f3
 
 /* ************************************************************************* */
 
 // max size of the string returned by python code in response to a version request
 #define PIOVEN_VERSION_SIZE		32
+
+/* ************************************************************************* */
+
+// no input, PIOVEN_VERSION_SIZE bytes for output
+#define IOCTL_PIOVEN_GET_VERSION      CTL_CODE(FILE_DEVICE_PIOVEN,0,METHOD_BUFFERED,FILE_ANY_ACCESS)
+
+// no input, DWORD output
+#define IOCTL_PIOVEN_GET_TEMPERATURE  CTL_CODE(FILE_DEVICE_PIOVEN,1,METHOD_BUFFERED,FILE_ANY_ACCESS)
+
+// no input, no output
+#define IOCTL_PIOVEN_HEATER_ON        CTL_CODE(FILE_DEVICE_PIOVEN,2,METHOD_BUFFERED,FILE_ANY_ACCESS)
+
+// no input, no output
+#define IOCTL_PIOVEN_HEATER_OFF       CTL_CODE(FILE_DEVICE_PIOVEN,3,METHOD_BUFFERED,FILE_ANY_ACCESS)
 
 /* ************************************************************************* */
 

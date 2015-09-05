@@ -198,6 +198,8 @@ NTSTATUS	SendSerialCommand(HANDLE hComPort, CHAR cmd, CHAR *response, ULONG resp
 					}
 				}
 			}
+
+			response[totalReceived - 1] = 0;
 		}
 	}
 

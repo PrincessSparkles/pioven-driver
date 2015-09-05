@@ -21,4 +21,9 @@ PIOVENAPI_API HANDLE OpenOven(void);
 
 PIOVENAPI_API void CloseOven(HANDLE hOven);
 
+PIOVENAPI_API BOOL GetOvenVersion(HANDLE hOven, char *buf, DWORD bufSize);
+PIOVENAPI_API DWORD GetOvenTemperature(HANDLE hOven);
+PIOVENAPI_API BOOL SetHeaterOn(HANDLE hOven);
+PIOVENAPI_API BOOL SetHeaterOff(HANDLE hOven);
+
 #endif

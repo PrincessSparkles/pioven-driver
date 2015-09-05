@@ -29,7 +29,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	// instance an object of COMMTIMEOUTS.
 	COMMTIMEOUTS comTimeOut;
 	// Specify time-out between charactor for receiving.
-	comTimeOut.ReadIntervalTimeout = 0;
+	comTimeOut.ReadIntervalTimeout = MAXDWORD;
 	// Specify value that is multiplied 
 	// by the requested number of bytes to be read. 
 	comTimeOut.ReadTotalTimeoutMultiplier = 0;

@@ -47,6 +47,8 @@ typedef struct _DeviceExtension
 	PFILE_OBJECT	ComPortFile;
 	KEVENT			ComPortEvent;
 
+	IO_STATUS_BLOCK	ComPortStatus;
+
 	KEVENT			ComPortReadEvent;	// set when the comport has read something
 	HANDLE			ComPortReadThread;	// thread that is reading the data from the comport
 
